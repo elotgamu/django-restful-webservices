@@ -1,0 +1,58 @@
+version: '3'
+
+services:
+  db:
+    image: postgres:11
+    # restart: always
+    environment:
+      LC_ALL: C.UTF-8
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB_NAME}
+      POSTGRES_USER: ${POSTGRES_USER}
+    ports:
+      - "5435:5432"
+    networks:
+      - backend
+
+  db-admin:
+    image: dpage/pgadmin4
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD}
+    depends_on:
+      - db
+    ports:
+      - "8081:80"
+    networks:
+      - backend
+
+  django-app:
+    build: .
+    # command: python manage.py runserver 0.0.0.0:8000
+    command: >
+      sh -c "python manage.py makemigrations &&
+             python manage.py migrate &&
+             python manage.py runserver 0.0.0.0:8080"
+    volumes:
+      - .:/app
+    ports:
+      - "8080:8080"
+    environment:
+      DJANGO_DB_HOST: ${POSTGRES_HOST}
+      DJANGO_DB_PASSWORD: ${POSTGRES_PASSWORD}
+      DJANGO_DB_USER: ${POSTGRES_USER}
+      DJANGO_DB_NAME: ${POSTGRES_DB_NAME}
+      DJANGO_DB_PORT: ${POSTGRES_PORT}
+      DJANGO_ROOT_USERNAME: ${DJANGO_SUPERUSER_USERNAME}
+      DJANGO_ROOT_EMAIL: ${DJANGO_SUPERUSER_EMAIL}
+      DJANGO_ROOT_PASSWORD: ${DJANGO_SUPERUSER_PASSWORD}
+
+      # DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY}
+    networks:
+      - backend
+    depends_on:
+      - db
+
+networks:
+  backend:
+    driver: bridge
